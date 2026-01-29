@@ -1,0 +1,137 @@
+{
+  "name": "final",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        -64
+      ],
+      "id": "ea65320c-5cc6-43e6-8ba3-85d36f0adf32",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "z8BLhrCTk6BdYxXu",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From: {{\n  (() => {\n    const headers = $json.payload.headers || [];\n    const fromHeader = headers.find(h => h.name === 'From');\n    return fromHeader ? fromHeader.value : 'unknown';\n  })()\n}}\nSubject: {{\n  (() => {\n    const headers = $json.payload.headers || [];\n    const subjectHeader = headers.find(h => h.name === 'Subject');\n    return subjectHeader ? subjectHeader.value : 'No subject';\n  })()\n}}\nBody: {{ $json.snippet }}\n\nWrite a short, polite reply email in simple English with 1–2 emojis.\nOnly output the reply body text (no From:, To:, or Subject lines).\n",
+        "options": {
+          "systemMessage": "You are an email assistant for Sivabalan.\nFor every incoming email:\n- Understand the content\n- Always generate a friendly reply in simple English\n- Use 1–2 emojis\n- Output ONLY the email body text (not From / To / Subject)\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        -64
+      ],
+      "id": "98daad41-83ce-4903-a4bc-a8ac09d67f2d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        160
+      ],
+      "id": "87fb717d-4132-43e3-9f1b-e35d963b52fa",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ayfr3iHVFZI7Twg4",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{\n  (() => {\n    const from = $node[\"Gmail Trigger\"].json.From || $node[\"Gmail Trigger\"].json.from;\n    if (!from) return '';\n    const match = from.match(/<(.+?)>/);\n    return match ? match[1] : from;\n  })()\n}}\n",
+        "subject": "={{\n  (() => {\n    const subj = $node[\"Gmail Trigger\"].json.Subject || $node[\"Gmail Trigger\"].json.subject || 'No subject';\n    return 'Re: ' + subj;\n  })()\n}}\n",
+        "message": "={{ $node[\"AI Agent\"].json.output }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        -64
+      ],
+      "id": "8f7f46a4-324a-4310-916a-29b7673b2041",
+      "name": "Send a message",
+      "webhookId": "65db08fe-ca3e-4054-9b03-fafa3187f537",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "z8BLhrCTk6BdYxXu",
+          "name": "Gmail account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b16a5d16-ec02-43b0-9698-843e8244c5a4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a6007b9544ae48cd86270ca5435e7643b1482e0f9e72c4f84c28852372b02eef"
+  },
+  "id": "cS6jclwI4pFC0yxT",
+  "tags": []
+}
